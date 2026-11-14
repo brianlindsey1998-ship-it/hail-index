@@ -1,0 +1,39 @@
+name: lsr-check
+on:
+  workflow_dispatch:
+    inputs:
+      n: {description: "reports sampled per year", default: "150"}
+permissions:
+  contents: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        year: [2021, 2022, 2023, 2024, 2025]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install pygrib numpy
+      - run: python scripts/lsr_check.py --year ${{ matrix.year }} --n ${{ inputs.n }} --out lsr-${{ matrix.year }}.json
+      - uses: actions/upload-artifact@v4
+        with: {name: "lsr-${{ matrix.year }}", path: "lsr-${{ matrix.year }}.json"}
+  merge:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: {path: parts, merge-multiple: true}
+      - run: |
+          python - <<'PY'
+          import json,glob
+          out=[]
+          for f in sorted(glob.glob("parts/lsr-*.json")): out+=json.load(open(f))
+          json.dump(out,open("validation/lsr_check.json","w")); print(len(out))
+          PY
+          git config user.name "hail-index bot"; git config user.email "actions@users.noreply.github.com"
+          git pull -q --rebase || true
+          git add validation/lsr_check.json && git commit -m "LSR ground-truth check" && git push
