@@ -1,0 +1,54 @@
+name: validate-sites
+on:
+  workflow_dispatch:
+    inputs:
+      start: {description: "first storm day (YYYY-MM-DD)", default: "2020-10-01"}
+      end: {description: "last storm day (YYYY-MM-DD)", default: "2026-11-12"}
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl -s "https://noaa-mrms-pds.s3.amazonaws.com/?list-type=2&prefix=CONUS/&delimiter=/" | grep -o '<Prefix>CONUS/MESH[^<]*' || true
+          curl -s "https://noaa-mrms-pds.s3.amazonaws.com/?list-type=2&prefix=CONUS/MESH_Max_1440min_00.50/&delimiter=/&max-keys=3" | grep -o '<Prefix>[^<]*' | head
+  scan:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        year: [2020, 2021, 2022, 2023, 2024, 2025, 2026]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install pygrib numpy
+      - name: scan
+        run: |
+          S="${{ inputs.start }}"; E="${{ inputs.end }}"; Y=${{ matrix.year }}
+          YS="$Y-01-01"; YE="$Y-12-31"
+          [[ "$S" > "$YS" ]] && YS="$S"; [[ "$E" < "$YE" ]] && YE="$E"
+          if [[ "$YS" > "$YE" ]]; then echo skip; echo '{"results":[],"errors":[]}' > part-$Y.json; exit 0; fi
+          python scripts/mesh_scan.py --start "$YS" --end "$YE" --sites validation/sites.json --out part-$Y.json --workers 4
+      - uses: actions/upload-artifact@v4
+        with: {name: "part-${{ matrix.year }}", path: "part-${{ matrix.year }}.json"}
+  merge:
+    needs: scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: {path: parts, merge-multiple: true}
+      - run: |
+          python - <<'PY'
+          import json,glob
+          res,err=[],[]
+          for f in sorted(glob.glob("parts/part-*.json")):
+              j=json.load(open(f)); res+=j["results"]; err+=j["errors"]
+          res.sort(key=lambda r:r["date"])
+          json.dump({"results":res,"errors":err},open("validation/scan.json","w"))
+          print(len(res),"days",len(err),"errors")
+          PY
+          git config user.name "hail-index bot"; git config user.email "actions@users.noreply.github.com"
+          git add validation/scan.json && git commit -m "validation scan ${{ inputs.start }}..${{ inputs.end }}" && git push
