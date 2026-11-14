@@ -51,4 +51,5 @@ jobs:
           print(len(res),"days",len(err),"errors")
           PY
           git config user.name "hail-index bot"; git config user.email "actions@users.noreply.github.com"
+          git pull -q --rebase || true
           git add validation/scan.json && git commit -m "validation scan ${{ inputs.start }}..${{ inputs.end }}" && git push
