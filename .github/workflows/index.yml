@@ -1,0 +1,86 @@
+name: hail-index
+# Nightly: rebuild the current year's radar hail index from NOAA MRMS MESH and
+# publish it on the `data` branch (one commit, replaced each run, so history
+# never grows).  Manual run with years=all rebuilds everything since Oct 2020.
+on:
+  schedule:
+    - cron: "23 14 * * *"     # after NOAA posts the 12:00 UTC daily-max file
+  workflow_dispatch:
+    inputs:
+      years: {description: "current | all | comma list (e.g. 2024,2025)", default: "current"}
+permissions:
+  contents: write
+concurrency:
+  group: hail-index
+  cancel-in-progress: false
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      years: ${{ steps.p.outputs.years }}
+    steps:
+      - id: p
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import datetime as dt, json
+          sel = "${{ inputs.years }}" or "current"
+          t = dt.datetime.utcnow().date()
+          if sel == "all": ys = list(range(2020, t.year + 1))
+          elif sel == "current":
+              ys = [t.year]
+              if t.timetuple().tm_yday <= 3: ys.insert(0, t.year - 1)
+          else: ys = [int(x) for x in sel.split(",") if x.strip()]
+          print("years=" + json.dumps(ys))
+          PY
+  build:
+    needs: plan
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        year: ${{ fromJson(needs.plan.outputs.years) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install pygrib numpy
+      - name: build (one retry)
+        run: |
+          python scripts/build_index.py --year ${{ matrix.year }} --out y${{ matrix.year }} \
+          || (sleep 60 && rm -rf y${{ matrix.year }} && python scripts/build_index.py --year ${{ matrix.year }} --out y${{ matrix.year }})
+      - run: tar czf y${{ matrix.year }}.tgz y${{ matrix.year }}
+      - uses: actions/upload-artifact@v4
+        with: {name: "y${{ matrix.year }}", path: "y${{ matrix.year }}.tgz", retention-days: 3}
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 1}
+      - uses: actions/download-artifact@v4
+        with: {path: built, merge-multiple: true}
+      - name: assemble data branch
+        run: |
+          git config --global user.name "hail-index bot"; git config --global user.email "actions@users.noreply.github.com"
+          URL="https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}"
+          if git ls-remote --exit-code --heads "$URL" data >/dev/null; then
+            git clone -q --depth 1 -b data "$URL" data
+          else
+            mkdir data && git -C data init -q -b data && git -C data remote add origin "$URL"
+          fi
+          for t in built/*.tgz; do
+            y=$(basename "$t" .tgz)
+            rm -rf "data/$y" && tar xzf "$t" -C data
+          done
+          python3 scripts/manifest.py data
+          cd data
+          git checkout -q --orphan fresh
+          git add -A
+          git commit -q -m "hail index $(date -u +%F)"
+          git push -q -f origin fresh:data
+      - name: status on main
+        run: |
+          cp data/manifest.json status-latest.json 2>/dev/null || true
+          mkdir -p status && mv status-latest.json status/latest.json
+          git add status/latest.json
+          git diff --cached --quiet || (git commit -q -m "index status $(date -u +%F)" && (git push -q || (git pull -q --rebase && git push -q)))
