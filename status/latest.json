@@ -7,8 +7,8 @@
  "storm_day": "12:00 UTC to 12:00 UTC (06:00 CST to 06:00 CST)",
  "source": "NOAA MRMS MESH_Max_1440min_00.50, NOAA Open Data on AWS (s3://noaa-mrms-pds)",
  "archive_start": "2020-10-14",
- "last_storm_day": "2026-11-15",
- "built_utc": "2026-11-16T23:27Z",
+ "last_storm_day": "2026-11-16",
+ "built_utc": "2026-11-17T22:30Z",
  "years": {
   "2020": {
    "first": "2020-10-14",
@@ -60,11 +60,11 @@
   },
   "2026": {
    "first": "2026-01-01",
-   "last_processed": "2026-11-15",
-   "days": 319,
+   "last_processed": "2026-11-16",
+   "days": 320,
    "missing": [],
-   "tiles": 6002,
-   "bytes": 17314114
+   "tiles": 6003,
+   "bytes": 17314441
   }
  }
 }
