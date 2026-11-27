@@ -1,0 +1,70 @@
+{
+ "format": "HIX1",
+ "tile_deg": 0.5,
+ "cell_deg": 0.01,
+ "thresh_in": 0.5,
+ "value_unit": "0.5 mm",
+ "storm_day": "12:00 UTC to 12:00 UTC (06:00 CST to 06:00 CST)",
+ "source": "NOAA MRMS MESH_Max_1440min_00.50, NOAA Open Data on AWS (s3://noaa-mrms-pds)",
+ "archive_start": "2020-10-14",
+ "last_storm_day": "2026-11-26",
+ "built_utc": "2026-11-27T22:48Z",
+ "years": {
+  "2020": {
+   "first": "2020-10-14",
+   "last_processed": "2020-12-31",
+   "days": 79,
+   "missing": [],
+   "tiles": 1699,
+   "bytes": 890985
+  },
+  "2021": {
+   "first": "2021-01-01",
+   "last_processed": "2021-12-31",
+   "days": 365,
+   "missing": [],
+   "tiles": 5397,
+   "bytes": 11537314
+  },
+  "2022": {
+   "first": "2022-01-01",
+   "last_processed": "2022-12-31",
+   "days": 365,
+   "missing": [],
+   "tiles": 5867,
+   "bytes": 15020826
+  },
+  "2023": {
+   "first": "2023-01-01",
+   "last_processed": "2023-12-31",
+   "days": 365,
+   "missing": [],
+   "tiles": 5672,
+   "bytes": 16374762
+  },
+  "2024": {
+   "first": "2024-01-01",
+   "last_processed": "2024-12-31",
+   "days": 366,
+   "missing": [],
+   "tiles": 6092,
+   "bytes": 16189656
+  },
+  "2025": {
+   "first": "2025-01-01",
+   "last_processed": "2025-12-31",
+   "days": 365,
+   "missing": [],
+   "tiles": 6014,
+   "bytes": 16460572
+  },
+  "2026": {
+   "first": "2026-01-01",
+   "last_processed": "2026-11-26",
+   "days": 330,
+   "missing": [],
+   "tiles": 6009,
+   "bytes": 17355729
+  }
+ }
+}

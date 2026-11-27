@@ -1,0 +1,12 @@
+{
+ "year": 2023,
+ "first": "2023-01-01",
+ "last_processed": "2023-12-31",
+ "days": 365,
+ "missing": [],
+ "errors": [],
+ "tiles": 5672,
+ "cells": 7589418,
+ "bytes": 16374762,
+ "thresh_mm": 12.7
+}

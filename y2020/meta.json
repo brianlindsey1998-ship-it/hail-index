@@ -1,0 +1,12 @@
+{
+ "year": 2020,
+ "first": "2020-10-14",
+ "last_processed": "2020-12-31",
+ "days": 79,
+ "missing": [],
+ "errors": [],
+ "tiles": 1699,
+ "cells": 328365,
+ "bytes": 890985,
+ "thresh_mm": 12.7
+}
